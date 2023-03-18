@@ -11,7 +11,7 @@ if (!isSingleInstance) {
 	process.exit(0);
 }
 
-export async function createWindow() {
+export async function createWindow(url?: string) {
 	let x, y;
 	const currentWindow = BrowserWindow.getFocusedWindow();
 
@@ -50,7 +50,7 @@ export async function createWindow() {
 
 	// Define the URL to use for the `BrowserWindow`, depending on the DEV env.
 	const pageUrl = import.meta.env.DEV
-		? "http://localhost:5173"
+		? `http://localhost:5173${url}`
 		: new URL("../dist/renderer/index.html", `file://${__dirname}`).toString();
 
 	await newWindow.loadURL(pageUrl);
@@ -82,14 +82,14 @@ export async function createWindow() {
 	return newWindow;
 }
 
-app.on("second-instance", () => {
-	createWindow().catch((err) =>
-		console.error(
-			"Error while trying to prevent second-instance Electron event:",
-			err,
-		),
-	);
-});
+// app.on("second-instance", () => {
+// 	createWindow().catch((err) =>
+// 		console.error(
+// 			"Error while trying to prevent second-instance Electron event:",
+// 			err,
+// 		),
+// 	);
+// });
 
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") {
@@ -99,7 +99,7 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
 	if (windows.size === 0) {
-		createWindow().catch((err) =>
+		createWindow("/").catch((err) =>
 			console.error(
 				"Error while trying to handle activate Electron event:",
 				err,
@@ -111,11 +111,30 @@ app.on("activate", () => {
 app
 	.whenReady()
 	.then(() => {
-		ipcMain.handle('new-window', async (channel) => {
-			createWindow()
-			return channel.processId
-		})
-		createWindow()
+		ipcMain.handle("new-window", async (channel, url) => {
+			let w = getWindowByUrl(url);
+			if (!w) {
+				createWindow(url);
+			} else {
+				w.show();
+				w.focus();
+			}
+		});
 
+		ipcMain.handle("print-sender-id", (event) => {
+			return event.sender.id;
+		});
+
+		createWindow("/");
 	})
 	.catch((e) => console.error("Failed to create window:", e));
+
+function getWindowByUrl(url?: string) {
+	let prefix = import.meta.env.DEV
+		? "http://localhost:5173"
+		: new URL("../dist/renderer/index.html", `file://${__dirname}`).toString();
+	if (!url) return;
+	return BrowserWindow.getAllWindows().find(
+		(win) => win.webContents.getURL() === `${prefix}${url}`,
+	);
+}

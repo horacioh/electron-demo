@@ -45,7 +45,7 @@ const setupMainWatcher = async () => {
 		}
 
 		// Restart Electron process when main package is edited and recompiled.
-		spawnProcess = spawn(String(electronPath), ['.'])
+		spawnProcess = spawn(String(electronPath), ['--inspect=5858', '.'])
 	})
 }
 

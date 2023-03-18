@@ -6,8 +6,6 @@ import {contextBridge, ipcRenderer, shell} from 'electron'
 contextBridge.exposeInMainWorld('api', {
 	// Open an URL into the default web-browser.
 	openUrl: (url: string) => shell.openExternal(url),
-	openWindow: (url?: string) => {
-		console.log('OPEN NEW WINDOW!')
-		ipcRenderer.invoke('new-window', url)
-	}
+	openWindow: (url?: string) => ipcRenderer.invoke('new-window', url),
+	getWindowId: () => ipcRenderer.invoke('print-sender-id')
 })
